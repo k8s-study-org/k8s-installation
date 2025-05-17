@@ -1,0 +1,45 @@
+VAGRANTFILE_API_VERSION = "2"
+
+# Q1. Ruby는 왜 객체에 값을 담을 때 반복문을 사용하는 거지?
+# Q2. VirtualBox와 Vagrant를 통해 가상환경 세팅 시 네트워크 설정이 어떻게 이루어지는거지?
+# Q3. GPG를 이용해 패키지 관리를 하는 이유는 무엇인가?
+# Q4. config.vbguest.auto_update = false 를 하지 않으면 오류가 발생하는 이유
+# Q5. apt과 apt-get의 차이점은 무엇인지? (apt이 불안정한 CLI라는 경고 로그 발생)
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+    # 모든 Vagrant 가상 머신에 대한 설정
+    config.vm.box = "bento/ubuntu-24.04"          # 사용할 이미지 설정 (Ubuntu 24.04)
+    config.vm.box_check_update = false            # 이미지 업데이트 확인 여부 (false)
+    config.vbguest.auto_update = false            # 가상 머신 호스트 업데이트 여부 (false)
+    config.disksize.size = '50GB'                 # 가상 머신 디스크 크기 설정 (50GB)
+    config.vm.synced_folder ".", "/vagrant", type: "virtualbox" # 호스트 머신과 가상 머신 간의 파일 공유 설정
+    config.vm.provider "virtualbox" do |vb|       # VirtualBox 설정
+        vb.memory = "2048"                        # 메모리 설정
+        vb.cpus = "4"                             # CPU 설정
+    end
+
+    # master node 설정
+    config.vm.define "k8s-master" do |master|    # master node 설정
+        master.vm.hostname = "k8s-master"        # master node 이름 설정
+        master.vm.network "private_network", ip: "192.168.56.10" # master node IP 설정
+        master.vm.network "forwarded_port", guest: 22, host: 2000
+        master.ssh.port = 2000
+        master.vm.provider "virtualbox" do |vb|
+            vb.memory = "4096"                    # master node 메모리 설정
+            vb.cpus = "4"                         # master node CPU 설정
+        end
+        master.vm.provision "shell", path: "scripts/common.sh" # 공통 설치 스크립트 실행
+        master.vm.provision "shell", path: "scripts/master.sh" # master 설치에 필요한 스크립트 실행
+    end
+
+    # worker node 설정 (2대)
+    (1..2).each do |i|
+        config.vm.define "k8s-worker-#{i}" do |worker|
+            worker.vm.hostname = "k8s-worker-#{i}"        # worker node 이름 설정
+            worker.vm.network "private_network", ip: "192.168.56.1#{i}" # worker node IP 설정
+            worker.vm.network "forwarded_port", guest: 22, host: 2000 + i
+            worker.ssh.port = 2000 + i
+            worker.vm.provision "shell", path: "scripts/common.sh" # 공통 설치 스크립트 실행
+            worker.vm.provision "shell", path: "scripts/worker.sh" # worker 설치에 필요한 스크립트 실행
+        end
+    end
+end

@@ -1,0 +1,6 @@
+# Vagrant 관련 파일들
+.vagrant/
+*.log
+
+# 가상 머신 관련 파일
+*.box
