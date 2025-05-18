@@ -10,8 +10,10 @@ echo 'grub-pc grub-pc/install_devices_disks_changed multiselect /dev/sda' | debc
 # 시스템 업데이트
 ## update: 원격 저장소에서 패키지 목록을 받아와 최신화
 ## upgrade: 최신화된 패키지 목록을 기반으로 설치된 패키지를 업그레이드
+## git: k8s 오브젝트를 다운받기 위해 설치
 apt-get update -y
 apt-get upgrade -y
+apt-get install -y git
 
 # ubuntu 유저 생성
 useradd -m -s /bin/bash ubuntu
