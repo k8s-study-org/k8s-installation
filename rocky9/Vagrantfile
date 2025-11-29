@@ -1,0 +1,42 @@
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+    config.vm.box = "generic/rocky9"
+    config.vm.box_check_update = false
+    config.vbguest.auto_update = false
+    config.disksize.size = "50GB"
+    config.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+    config.vm.provider "virtualbox" do |vb|
+        vb.memory = "2048"
+        vb.cpus = "4"
+    end
+
+    config.vm.define "k8s-master" do |master|
+        master.vm.hostname = "k8s-master"
+        master.vm.network "private_network", ip: "192.168.56.20"
+        master.vm.network "forwarded_port", guest: 22, host: 2000
+        master.ssh.port = 2000
+        master.ssh.connect_timeout = 60
+        master.ssh.keep_alive = true
+        master.vm.provider "virtualbox" do |vb|
+            vb.memory = "4096"
+            vb.cpus = "4"
+        end
+        master.vm.provision "shell", path: "scripts/common.sh" # 공통 설치 스크립트 실행
+        master.vm.provision "shell", path: "scripts/master.sh" # master 설치에 필요한 스크립트 실행
+    end
+
+    # worker node 설정 (2대)
+    (1..2).each do |i|
+        config.vm.define "k8s-worker-#{i}" do |worker|
+            worker.vm.hostname = "k8s-worker-#{i}"                        # worker node 이름 설정
+            worker.vm.network "private_network", ip: "192.168.56.2#{i}"   # worker node IP 설정
+            worker.vm.network "forwarded_port", guest: 22, host: 2000 + i # worker node SSH 포트 설정
+            worker.ssh.port = 2000 + i
+            worker.ssh.connect_timeout = 60
+            worker.ssh.keep_alive = true
+            worker.vm.provision "shell", path: "scripts/common.sh" # 공통 설치 스크립트 실행
+            worker.vm.provision "shell", path: "scripts/worker.sh" # worker 설치에 필요한 스크립트 실행
+        end
+    end
+end
