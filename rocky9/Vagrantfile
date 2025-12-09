@@ -39,4 +39,16 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
             worker.vm.provision "shell", path: "scripts/worker.sh" # worker 설치에 필요한 스크립트 실행
         end
     end
+
+    # cicd node 설정
+    config.vm.define "cicd-node" do |cicd|
+        cicd.vm.hostname = "cicd"
+        cicd.vm.network "private_network", ip: "192.168.56.30"
+        cicd.vm.network "forwarded_port", guest: 22, host: 2030
+        cicd.vm.provider "virtualbox" do |vb|
+            vb.memory = "2048"
+            vb.cpus = "2"
+        end
+        cicd.vm.provision "shell", path: "scripts/cicd.sh" # cicd 설치에 필요한 스크립트 실행
+    end
 end
